@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -euo pipefail
+
+store=${1-us}
+
+(for genre in $(seq 6000 6027); do
+	./get-top-apps "$store" "$genre" 100 &
+done) | jq -s 'flatten | unique_by(.id) | sort_by(.size) | reverse'

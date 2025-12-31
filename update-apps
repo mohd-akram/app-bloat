@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -euo pipefail
+
+date=$(date +%Y-%m-%d)
+ymd=$(date +%Y%m%d)
+
+store=us
+dir=data/$date
+mkdir -p "$dir"
+
+./get-all-top-apps "$store" > "$dir/apps-$store-$ymd.json"
