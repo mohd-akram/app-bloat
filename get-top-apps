@@ -1,0 +1,66 @@
+#!/usr/bin/env node
+// @ts-check
+async function getTopApps(store = "us", chartId = "36", limit = 100) {
+  let res = await fetch(
+    `https://itunes.apple.com/${store}/rss/topfreeapplications/genre=${chartId}/limit=${limit}/json`
+  );
+  if (!res.ok) throw new Error("Failed to get top apps");
+
+  /** @type {{ feed: { entry: { id: { attributes: { 'im:id': string }}}[] }}} */
+  const {
+    feed: { entry: apps },
+  } = await res.json();
+
+  if (!apps) return [];
+
+  const appIds = apps.map((app) => app.id.attributes["im:id"]);
+
+  res = await fetch(
+    `https://itunes.apple.com/lookup?country=${store}&id=${appIds.join(",")}`
+  );
+  if (!res.ok) throw new Error("Failed to get apps");
+
+  /**
+   * @type {{
+   *  results: {
+   *    trackId: number,
+   *    trackName: string,
+   *    artistName: string,
+   *    fileSizeBytes: string,
+   *    artworkUrl100: string,
+   *    genres: string[]
+   *  }[]
+   * }}
+   */
+  const { results } = await res.json();
+
+  if (results.length != appIds.length) throw new Error("Failed to lookup apps");
+
+  return results.map(
+    ({
+      trackId: id,
+      trackName: name,
+      artistName: developer,
+      fileSizeBytes: size,
+      artworkUrl100: iconURL,
+      genres: categories,
+    }) => ({
+      id,
+      name,
+      developer,
+      iconURL,
+      size: Number(size),
+      categories,
+    })
+  );
+}
+
+export default getTopApps;
+
+// @ts-expect-error main exists
+if (import.meta.main)
+  // @ts-expect-error process exists
+  process.stdout.write(
+    // @ts-expect-error process exists
+    JSON.stringify(await getTopApps(process.argv[2], process.argv[3]), null, 2)
+  );

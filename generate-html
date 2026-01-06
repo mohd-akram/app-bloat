@@ -1,0 +1,335 @@
+#!/usr/bin/env node
+// @ts-check
+import { text } from "node:stream/consumers";
+
+const categoryNames = {
+  36: "Free",
+  6000: "Business",
+  6001: "Weather",
+  6002: "Utilities",
+  6003: "Travel",
+  6004: "Sports",
+  6005: "Social Networking",
+  6006: "Reference",
+  6007: "Productivity",
+  6008: "Photo & Video",
+  6009: "News",
+  6010: "Navigation",
+  6011: "Music",
+  6012: "Lifestyle",
+  6013: "Health & Fitness",
+  6014: "Games",
+  6015: "Finance",
+  6016: "Entertainment",
+  6017: "Education",
+  6018: "Books",
+  6020: "Medical",
+  6021: "Magazines & Newspapers",
+  6022: "Catalogs",
+  6023: "Food & Drink",
+  6024: "Shopping",
+  6025: "Stickers",
+  6026: "Developer Tools",
+  6027: "Graphics & Design",
+};
+
+const categoryIds = Object.fromEntries(
+  Object.entries(categoryNames).map(([k, v]) => [v, k])
+);
+
+/**
+ * @type {{
+ *  id: number, name: string, size: number, iconURL: string, developer: string,
+ *  chartIds: string[], categories: string[]
+ * }[]}
+ */
+const apps = JSON.parse(await text(process.stdin));
+
+apps.sort((b, a) => a.size - b.size);
+
+let total = 0;
+let count = 0;
+
+for (const app of apps) {
+  app.name = app.name.normalize();
+  if (!app.chartIds.includes("36")) continue;
+  total += app.size;
+  ++count;
+}
+
+const avgSize = total / count;
+
+const chartIds = Array.from(
+  apps.reduce((s, a) => {
+    for (const c of a.chartIds) s.add(c);
+    return s;
+  }, /** @type {Set<string>} */ (new Set()))
+);
+
+chartIds.sort((a, b) => {
+  a = /** @type {Record<string, string>} */ (categoryNames)[a];
+  b = /** @type {Record<string, string>} */ (categoryNames)[b];
+  return a == "Free" ? -1 : b == "Free" ? 1 : a < b ? -1 : a > b ? 1 : 0;
+});
+
+const developers = Array.from(
+  apps.reduce(
+    (s, a) => (s.add(a.developer), s),
+    /** @type {Set<string>} */ (new Set())
+  )
+);
+
+developers.sort();
+
+const stores = ["ae", "br", "de", "fr", "gb", "jp", "us"];
+
+const store = process.argv[2];
+
+/**
+ *
+ * @param s {string}
+ */
+function escapeHTML(s) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
+ *
+ * @param bytes {number}
+ */
+function formatSize(bytes) {
+  if (bytes >= 1000 ** 3) return `${(bytes / 1000 ** 3).toFixed(2)} GB`;
+  if (bytes >= 1000 ** 2) return `${(bytes / 1000 ** 2).toFixed(2)} MB`;
+  if (bytes >= 1000 ** 1) return `${(bytes / 1000 ** 1).toFixed(2)} KB`;
+  return isNaN(bytes) ? "N/A" : `${bytes} B`;
+}
+
+const indent = (/** @type {number} */ n) => "\n" + "  ".repeat(n);
+
+process.stdout.write(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="color-scheme" content="light dark">
+    <meta name="viewport" content="initial-scale=1">
+    <title>App Bloat Leaderboard</title>
+    <style>
+      body {
+        font-family: sans-serif;
+      }
+      header {
+        text-align: center;
+      }
+      .apps {
+        max-width: 50rem;
+        margin: 0 auto;
+        padding-left: 4.5rem;
+      }
+      .app {
+        font-size: 1.5rem;
+        margin: 0.5rem 0;
+        display: none;
+      }
+      .app .icon {
+        vertical-align: middle;
+        border-radius: 0.5rem;
+      }
+      .app .size {
+        color: gray;
+      }
+      ${chartIds
+        .map(
+          (id) =>
+            `header:has(option[value=top]:checked):has(option[value="${id}"]:checked) ~ .apps .app[data-charts~="${id}"]`
+        )
+        .join("," + indent(3))} {
+        display: list-item;
+      }
+      ${chartIds
+        .map(
+          (id) =>
+            `header:has(option[value=popular]:checked):has(option[value="${id}"]:checked) ~ .apps .app${
+              id == "36" ? "" : `[data-categories~="${id}"]`
+            }`
+        )
+        .join("," + indent(3))} {
+        display: list-item;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>App Bloat Leaderboard</h1>
+      <form>
+        <select name="list">
+          <option value="top">Top</option>
+          <option value="popular">Popular</option>
+        </select>
+        <select name="category">
+          ${chartIds
+            .map(
+              (id) =>
+                `<option value="${id}">${escapeHTML(
+                  /** @type {Record<string, string>} */ (categoryNames)[id]
+                )}</option>`
+            )
+            .join(indent(5))}
+        </select>
+        apps in the
+        <select id="store">
+          ${stores
+            .map(
+              (s) =>
+                `<option value="${s}"${
+                  s == store ? " selected" : ""
+                }>${s.toUpperCase()}</option>`
+            )
+            .join(indent(5))}
+        </select>
+        App Store, ordered by size
+        <p>
+          <datalist id="developers">
+            ${developers
+              .map((d) => `<option value="${escapeHTML(d)}"></option>`)
+              .join(indent(6))}
+          </datalist>
+          <input type="text" name="developer" list="developers"
+            placeholder="Developer">
+        </p>
+        <label>Average size: <output id="size">${formatSize(
+          avgSize
+        )}</output></label>
+      </form>
+    </header>
+    <script>
+      ${formatSize.toString()}
+
+      function pushState(key, value) {
+        const url = new URL(location.href);
+        if (value) url.searchParams.set(key, value);
+        else url.searchParams.delete(key);
+        history.pushState(
+          { ...history.state, [key]: value }, '',
+          url.toString()
+        );
+      }
+
+      function calculateAvgSize() {
+        let total = 0;
+        let len = 0;
+        for (const appEl of document.querySelectorAll('.app')) {
+          if (
+            (developerInput.value &&
+              appEl.dataset.developer != developerInput.value) ||
+            (categoryInput.value && (
+              listInput.value == 'top' &&
+              !appEl.dataset.charts.split(' ').includes(categoryInput.value)
+            ) || (
+              listInput.value == 'popular' && categoryInput.value != '36' &&
+              !appEl.dataset.categories.split(' ').includes(categoryInput.value)
+            ))
+          )
+            continue;
+          total += Number(appEl.dataset.size);
+          ++len;
+        }
+        form.elements.size.textContent = formatSize(total / len);
+      }
+
+      const params = new URLSearchParams(location.search);
+      const form = document.querySelector('form');
+
+      const list = params.get('list');
+      const listInput = form.elements.list;
+      if (list) listInput.value = list;
+      listInput.onchange = () => {
+        calculateAvgSize();
+        pushState('list', listInput.value);
+      };
+
+      const category = params.get('category');
+      const categoryInput = form.elements.category;
+      if (category) categoryInput.value = category;
+      categoryInput.onchange = () => {
+        calculateAvgSize();
+        pushState('category', categoryInput.value);
+      };
+
+      const storeInput = form.elements.store;
+      const page = location.pathname.split('/').pop().replace(/\\.html$/, '');
+      const store =
+        Array.from(storeInput.options).find(o => o.value == page)?.value ??
+        'us';
+      storeInput.onchange = (e) => {
+        form.action = storeInput.value;
+        storeInput.value = store;
+        form.submit();
+      };
+      storeInput.value = store;
+
+      const developer = params.get('developer');
+      const developerInput = form.elements.developer;
+      function filterDevelopers() {
+        for (const appEl of document.querySelectorAll('.app')) {
+          appEl.style.display =
+            !developerInput.value ||
+            appEl.dataset.developer == developerInput.value
+            ? '' : 'none';
+        }
+      }
+      developerInput.onchange = () => {
+        filterDevelopers();
+        calculateAvgSize();
+        pushState('developer', developerInput.value);
+      }
+      if (developer) developerInput.value = developer;
+
+      form.onformdata = ({ formData }) => {
+        if (!formData.get('list')) formData.delete('list');
+        if (!formData.get('category')) formData.delete('category');
+        if (!formData.get('developer')) formData.delete('developer');
+      };
+
+      window.onpopstate = (event) => {
+        listInput.value = event.state?.list ??
+          listInput.options[0].value;
+        categoryInput.value = event.state?.category ??
+          categoryInput.options[0].value;
+        developerInput.value = event.state?.developer ?? '';
+        filterDevelopers();
+        calculateAvgSize();
+      };
+    </script>
+    <ol class="apps">
+      ${apps
+        .map(
+          (app) =>
+            `<li class="app" data-size="${
+              app.size
+            }" data-developer="${escapeHTML(
+              app.developer
+            )}" data-charts="${app.chartIds.join(
+              " "
+            )}" data-categories="${app.categories
+              .map((c) => categoryIds[c])
+              // Ignore game subgenres
+              .filter(Boolean)
+              .join(" ")}"><a href="https://apps.apple.com/${store}/app/${
+              app.id
+            }"><img loading="lazy" class="icon" alt="App icon for ${escapeHTML(
+              app.name
+            )}" src="${app.iconURL}" height="48"></a> <bdi>${escapeHTML(
+              app.name
+            )}</bdi> <small class="size">${formatSize(app.size)}</small></li>`
+        )
+        .join(indent(3))}
+    </ol>
+    <script>filterDevelopers(); calculateAvgSize();</script>
+  </body>
+</html>
+`);
