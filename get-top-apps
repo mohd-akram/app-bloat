@@ -11,14 +11,12 @@ async function getTopApps(store = "us", chartId = "36", limit = 100) {
     feed: { entry: apps },
   } = await res.json();
 
-  if (!apps) return [];
-
   const appIds = apps.map((app) => app.id.attributes["im:id"]);
 
   res = await fetch(
     `https://itunes.apple.com/lookup?country=${store}&id=${appIds.join(",")}`
   );
-  if (!res.ok) throw new Error("Failed to get apps");
+  if (!res.ok) throw new Error("Failed to lookup apps");
 
   /**
    * @type {{
@@ -34,7 +32,8 @@ async function getTopApps(store = "us", chartId = "36", limit = 100) {
    */
   const { results } = await res.json();
 
-  if (results.length != appIds.length) throw new Error("Failed to lookup apps");
+  if (results.length != appIds.length)
+    throw new Error("Invalid app lookup response");
 
   return results.map(
     ({
@@ -57,10 +56,7 @@ async function getTopApps(store = "us", chartId = "36", limit = 100) {
 
 export default getTopApps;
 
-// @ts-expect-error main exists
 if (import.meta.main)
-  // @ts-expect-error process exists
   process.stdout.write(
-    // @ts-expect-error process exists
     JSON.stringify(await getTopApps(process.argv[2], process.argv[3]), null, 2)
   );

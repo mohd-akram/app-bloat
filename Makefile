@@ -1,9 +1,12 @@
-all: ae.html br.html de.html fr.html gb.html jp.html us.html
+pages = ae.html br.html de.html fr.html gb.html jp.html us.html
+
+all: $(pages)
 
 %.html: apps-%.json
 	./generate-html "$$(basename $@ .html)" <$^ >$@
 
-apps-%.json: .force
+apps-%.json:
 	./get-all-top-apps "$$(echo $$(basename $@ .json) | cut -d- -f2)" >$@
 
-.force:
+clean:
+	$(RM) $(pages)

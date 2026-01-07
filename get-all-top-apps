@@ -5,11 +5,15 @@ set -euo pipefail
 store=${1-us}
 
 { for chartId in 36 $(seq 6000 6027); do
-	if [ "$chartId" -eq 6019 ]; then continue; fi
+	case $chartId in
+	6019) continue ;;
+	6022) continue ;;
+	6025) continue
+	esac
 	./get-top-apps "$store" "$chartId" 100 |
-	jq ".[] += {\"chartId\":\"$chartId\"}" &
+	jq -c --unbuffered ".[] + {\"chartId\":\"$chartId\"}" &
 done; for j in $(jobs -p); do wait $j; done; } |
 jq -s '
-	flatten | group_by(.id) |
+	group_by(.id) |
 	map((.[0] | del(.chartId)) + { chartIds: map(.chartId) | sort })
 '

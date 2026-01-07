@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -euo pipefail
+
+date=$(date +%Y%m%d)
+dir=data/$(date +%Y-%m)
+
+mkdir -p "$dir"
+
+for store in ae us; do
+	printf >&2 'Updating data for store: %s\n' "$store"
+	f=$dir/apps-$store-$date.json
+	./get-all-top-apps "$store" > "$f"
+done
