@@ -79,7 +79,7 @@ const developers = Array.from(
 
 developers.sort();
 
-const stores = ["ae", "br", "de", "fr", "gb", "in", "jp", "us"];
+const stores = ["ae", "br", "de", "eg", "fr", "gb", "in", "jp", "us"];
 
 const store = process.argv[2];
 
