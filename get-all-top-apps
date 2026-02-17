@@ -6,9 +6,7 @@ store=${1-us}
 
 { for chartId in 36 $(seq 6000 6027); do
 	case $chartId in
-	6019) continue ;;
-	6022) continue ;;
-	6025) continue
+	6019|6022|6025) continue
 	esac
 	./get-top-apps "$store" "$chartId" 100 |
 	jq -c --unbuffered ".[] + {\"chartId\":\"$chartId\"}" &
