@@ -32,7 +32,7 @@ const categoryNames = {
 };
 
 const categoryIds = Object.fromEntries(
-  Object.entries(categoryNames).map(([k, v]) => [v, k])
+  Object.entries(categoryNames).map(([k, v]) => [v, k]),
 );
 
 /**
@@ -61,7 +61,7 @@ const chartIds = Array.from(
   apps.reduce((s, a) => {
     for (const c of a.chartIds) s.add(c);
     return s;
-  }, /** @type {Set<string>} */ (new Set()))
+  }, /** @type {Set<string>} */ (new Set())),
 );
 
 chartIds.sort((a, b) => {
@@ -73,8 +73,8 @@ chartIds.sort((a, b) => {
 const developers = Array.from(
   apps.reduce(
     (s, a) => (s.add(a.developer), s),
-    /** @type {Set<string>} */ (new Set())
-  )
+    /** @type {Set<string>} */ (new Set()),
+  ),
 );
 
 developers.sort();
@@ -143,7 +143,7 @@ process.stdout.write(`<!doctype html>
       ${chartIds
         .map(
           (id) =>
-            `header:has(option[value=top]:checked):has(option[value="${id}"]:checked) ~ .apps .app[data-charts~="${id}"]`
+            `header:has(option[value=top]:checked):has(option[value="${id}"]:checked) ~ .apps .app[data-charts~="${id}"]`,
         )
         .join("," + indent(3))} {
         display: list-item;
@@ -153,7 +153,7 @@ process.stdout.write(`<!doctype html>
           (id) =>
             `header:has(option[value=popular]:checked):has(option[value="${id}"]:checked) ~ .apps .app${
               id == "36" ? "" : `[data-categories~="${id}"]`
-            }`
+            }`,
         )
         .join("," + indent(3))} {
         display: list-item;
@@ -173,8 +173,8 @@ process.stdout.write(`<!doctype html>
             .map(
               (id) =>
                 `<option value="${id}">${escapeHTML(
-                  /** @type {Record<string, string>} */ (categoryNames)[id]
-                )}</option>`
+                  /** @type {Record<string, string>} */ (categoryNames)[id],
+                )}</option>`,
             )
             .join(indent(5))}
         </select>
@@ -185,7 +185,7 @@ process.stdout.write(`<!doctype html>
               (s) =>
                 `<option value="${s}"${
                   s == store ? " selected" : ""
-                }>${s.toUpperCase()}</option>`
+                }>${s.toUpperCase()}</option>`,
             )
             .join(indent(5))}
         </select>
@@ -200,7 +200,7 @@ process.stdout.write(`<!doctype html>
             placeholder="Developer">
         </p>
         <label>Average size: <output id="size">${formatSize(
-          avgSize
+          avgSize,
         )}</output></label>
       </form>
     </header>
@@ -310,9 +310,9 @@ process.stdout.write(`<!doctype html>
             `<li class="app" data-size="${
               app.size
             }" data-developer="${escapeHTML(
-              app.developer
+              app.developer,
             )}" data-charts="${app.chartIds.join(
-              " "
+              " ",
             )}" data-categories="${app.categories
               .map((c) => categoryIds[c])
               // Ignore game subgenres
@@ -320,10 +320,10 @@ process.stdout.write(`<!doctype html>
               .join(" ")}"><a href="https://apps.apple.com/${store}/app/${
               app.id
             }"><img loading="lazy" class="icon" alt="App icon for ${escapeHTML(
-              app.name
+              app.name,
             )}" src="${app.iconURL}" height="48"></a> <bdi>${escapeHTML(
-              app.name
-            )}</bdi> <small class="size">${formatSize(app.size)}</small></li>`
+              app.name,
+            )}</bdi> <small class="size">${formatSize(app.size)}</small></li>`,
         )
         .join(indent(3))}
     </ol>
