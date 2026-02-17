@@ -1,4 +1,4 @@
-pages = ae.html br.html de.html fr.html gb.html jp.html us.html
+pages = ae.html br.html de.html fr.html gb.html in.html jp.html us.html
 
 all: $(pages)
 
